@@ -1,14 +1,21 @@
 {
-  "name": "my-app",
+  "name": "retro-app",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "gh-pages": "^2.2.0",
-    "react": "^16.10.2",
-    "react-dom": "^16.10.2",
-    "react-icons": "^3.7.0",
-    "react-scripts": "^3.3.0",
-    "reactstrap": "^8.0.1"
+    "@types/jest": "^27.0.1",
+    "@types/node": "^16.7.10",
+    "@types/react": "^17.0.19",
+    "@types/react-dom": "^17.0.9",
+    "bootstrap": "^5.1.0",
+    "gh-pages": "^3.2.3",
+    "react": "^17.0.2",
+    "react-bootstrap": "^2.0.0-beta.6",
+    "react-dom": "^17.0.2",
+    "react-icons": "^4.2.0",
+    "react-scripts": "^4.0.3",
+    "reactstrap": "^8.10.0",
+    "typescript": "^4.4.2"
   },
   "homepage": "https://nomennescio1.github.io/retrospective-client",
   "scripts": {
