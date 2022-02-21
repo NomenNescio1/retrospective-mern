@@ -16,9 +16,9 @@
   font-size: calc(10px + 2vmin);
   color: white;
 }
-.add-card-span{
+.add-card-span {
   width: 100%;
-  background-color:#EEEEEE;
+  background-color: #eeeeee;
   padding: 10px 0;
   font-size: 20px;
   margin-bottom: 20px;
@@ -27,32 +27,65 @@
 .App-link {
   color: #09d3ac;
 }
-.card{
+.card {
   padding: 10px 0;
 }
-.form-update{
+.form-update {
   width: 80%;
   margin: 10px auto;
 }
-.input-create{
+.input-create {
   width: 100%;
   margin-bottom: 10px;
 }
-.options-container{
+.option-input:nth-child(2) {
+  background: linear-gradient(90deg, #fc466b 0%, #3f5efb 100%);
+}
+.options-container {
   width: 100%;
   display: flex;
   padding: 10px;
   justify-content: flex-end;
-  align-items: center;  
+  align-items: center;
 }
-.top{
+.top {
   padding: 20px 0;
   margin-bottom: 20px;
 }
-.card{
+.card {
   margin-bottom: 10px;
 }
-.icon{
+.icon {
   cursor: pointer;
   margin: 0 5px;
+}
+.alert {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.btn-close {
+  box-sizing: content-box;
+  width: 1em;
+  height: 1em;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 1.25rem 1rem;
+  color: #000;
+  background: transparent url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3E%3Cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3E%3C/svg%3E") 50%/1em auto no-repeat;
+  border: 0;
+  border-radius: 0.25rem;
+  opacity: .5;
+}
+.column-container {
+
+}
+.update-card-form {
+  display: flex;
+  padding: 0 25px;
 }

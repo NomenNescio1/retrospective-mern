@@ -1,21 +1,32 @@
-import { useState, useEffect, BaseSyntheticEvent } from "react";
+import { useState, useEffect, useContext, BaseSyntheticEvent, memo } from "react";
 import Card from './Card';
-import Popup from "./Popup";
 import { CardProps, ColumnProps, API_ENDPOINT } from "../utils/utils";
+import { ErrorContext } from "../context/Error";
+import { Droppable } from "react-beautiful-dnd";
 
-const Column = ({ name, color }: ColumnProps): JSX.Element => {
+const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
 
-	const [cards, setCards] = useState<CardProps[]>([])
+	const [cards, setCards] = useState<CardProps[]>([]);
 	const [displayForm, setDisplayForm] = useState(false);
-	const [inputValue, setInputValue] = useState(''); 
+	const [inputValue, setInputValue] = useState('');
+	const { setError } = useContext(ErrorContext);
 
 	useEffect(() => {
-		fetch(`${API_ENDPOINT}/getcard/${name}`)
-			.then(response => response.json())
-			.then(data => setCards(data))
-			.catch((error: Error) => {
-				return <Popup message={`there was an erorr ${error}`} />
+		const controller = new AbortController();
+		const id = setTimeout(() => controller.abort(), 8000);
+
+		try {
+			fetch(`${API_ENDPOINT}/getcard/${name}`, {
+				signal: controller.signal
 			})
+				.then(response => response.json())
+				.then((data) => setCards(data as CardProps[]));
+		} catch (error) {
+			console.error(error);
+
+			setError(true);
+		}
+		clearTimeout(id);
 	}, [name]);
 
 	const createCard = async (event: BaseSyntheticEvent): Promise<void | JSX.Element> => {
@@ -46,9 +57,12 @@ const Column = ({ name, color }: ColumnProps): JSX.Element => {
 			const allCards = [...cards, newCard];
 			setCards(allCards);
 			setInputValue('');
+			setDisplayForm(false);
 
 		} catch (error) {
-			return <Popup message={`there was an error: ${error}`} />
+			console.error(error);
+
+			setError(true);
 		}
 	}
 
@@ -65,19 +79,26 @@ const Column = ({ name, color }: ColumnProps): JSX.Element => {
 	}
 
 	return (
-		<div className="col-sm-4 action-container" style={{backgroundColor: color}}>
-			<h2>{name}</h2>
-			<div className="add-card-span" onClick={() => setDisplayForm(!displayForm)}>Add card</div>
-			<form className={`form-create ${displayForm ? 'd-block' : 'd-none'}`} onSubmit={createCard}>
-				<input placeholder="Type the card content and press enter" type="text" className="input-create" value={inputValue || ''} onChange={handleInputChange} name="content" />
-			</form>
-			<div className="cards-container">
-				{cards.map((card: CardProps) =>
-					<Card {...card} key={card._id} updateCards={updateCards} />
-				)}
-			</div>
-		</div>
+		<Droppable key={index} droppableId={_id as string}>
+			{(provided, snapshot) => {
+				return (
+					<div {...provided.droppableProps} ref={provided.innerRef} className="col-sm-3 column-container" style={{ backgroundColor: color }}>
+						<h2 className="column-title">{name}</h2>
+						<div className="add-card-span" onClick={() => setDisplayForm(!displayForm)}>Add card</div>
+						<form className={`form-create ${displayForm ? 'd-block' : 'd-none'}`} onSubmit={createCard}>
+							<input placeholder="Type the card content and press enter" type="text" className="input-create" value={inputValue || ''} onChange={handleInputChange} name="content" />
+						</form>
+						<div className="cards-container">
+							{cards.map((card: CardProps, index) =>
+								<Card {...card} key={card._id} index={index} updateCards={updateCards} />
+							)}
+						</div>
+						{provided.placeholder}
+					</div>
+				)
+			}}
+		</Droppable>
 	);
 }
 
-export default Column;
+export default memo(Column);

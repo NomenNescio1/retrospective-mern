@@ -1,14 +1,18 @@
-import { useState, useRef, BaseSyntheticEvent } from "react";
+import { useState, useRef, BaseSyntheticEvent, useContext, memo } from "react";
 import { FaPencilAlt, FaTrashAlt, FaHeart } from "react-icons/fa";
 import { API_ENDPOINT, CardProps } from "../utils/utils";
-import Popup from "./Popup";
+import { ErrorContext } from '../context/Error'
+import { Modal, Button } from "react-bootstrap";
+import { Draggable } from "react-beautiful-dnd";
 
-const Card = ({ likes, content, _id, updateCards }: CardProps): JSX.Element => {
+const Card = ({ likes, content, _id, updateCards, index, category }: CardProps): JSX.Element => {
 
 	const updateRef = useRef<HTMLInputElement | null>(null);
 	const [contentState, setContent] = useState<string | undefined>(content || '');
 	const [likesState, setLikes] = useState<number | undefined>(likes);
 	const [displayInput, setDisplayInput] = useState(false);
+	const [showModal, setModal] = useState(false);
+	const { setError } = useContext(ErrorContext);
 
 	const editCard = async (event: BaseSyntheticEvent): Promise<void> => {
 		event.preventDefault();
@@ -17,9 +21,11 @@ const Card = ({ likes, content, _id, updateCards }: CardProps): JSX.Element => {
 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: `update=${updateRef.current?.value}`
 		}).catch((error) => {
-			return <Popup message={`there was an error: ${error}`}/>
+			console.error(error);
+
+			setError(true);
 		});
-		
+
 		setContent(updateRef.current?.value);
 		updateRef.current!.value = '';
 		setDisplayInput(false);
@@ -38,7 +44,9 @@ const Card = ({ likes, content, _id, updateCards }: CardProps): JSX.Element => {
 				likes: likesState
 			})
 		}).catch((error) => {
-			return <Popup message={`there was an error: ${error}`}/>
+			console.error(error);
+
+			setError(true);
 		});
 	};
 
@@ -51,19 +59,41 @@ const Card = ({ likes, content, _id, updateCards }: CardProps): JSX.Element => {
 	};
 
 	return (
-		<div className="card">
-			{contentState}
-			<div className="options-container">
-				<FaPencilAlt className="icon edit-icon" color="white" onClick={() => setDisplayInput(!displayInput)} id="edit" />
-				<FaTrashAlt onClick={(e) => { deleteCard(_id) }} className="icon trash-icon" color="black" />
-				<FaHeart onClick={() => { fetchLikesCount(_id) }} className="icon heart-icon" color="black" />
-				<span style={{ color: 'black' }}>{likesState}</span>
-			</div>
-			<form onSubmit={(event) => editCard(event)}>
-				<input placeholder="Edit card" className={`form-update ${displayInput ? 'd-block' : 'd-none'}`} type="text" name="update" ref={updateRef} />
-			</form>
-		</div>
-	);
+		<>
+			{<Modal show={showModal} onHide={() => setModal(false)} centered>
+				<Modal.Header closeButton>
+					<Modal.Title>You are about to delete a card</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>Are you sure you want to continue?</Modal.Body>
+				<Modal.Footer>
+					<Button variant="secondary" onClick={() => setModal(false)}>
+						Nah
+					</Button>
+					<Button variant="primary" onClick={() => deleteCard(_id)}>
+						Yes
+					</Button>
+				</Modal.Footer>
+			</Modal>}
+			<Draggable key={_id} draggableId={_id as string} index={index as number}>
+				{(provided, snapshot) => {
+					return (
+						<div className="card" ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps}>
+							{contentState}
+							<div className="options-container">
+								<FaPencilAlt className="icon edit-icon" onClick={() => setDisplayInput(!displayInput)} id="edit" />
+								<FaTrashAlt onClick={() => setModal(true)} className="icon trash-icon" />
+								<FaHeart onClick={() => fetchLikesCount(_id)} className="icon heart-icon" />
+								<span style={{ color: 'black' }}>{likesState}</span>
+							</div>
+							<form className={`update-card-form ${displayInput ? 'd-block' : 'd-none'}`} onSubmit={editCard}>
+								<input placeholder="Edit card" className="form-update" type="text" name="update" ref={updateRef} />
+								<input type="submit" value="Update" />
+							</form>
+						</div>
+					)
+				}}
+			</Draggable>
+		</>);
 }
 
-export default Card;
+export default memo(Card);

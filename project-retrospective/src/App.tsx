@@ -1,29 +1,40 @@
-import { FormEvent, useRef, useState, useEffect } from 'react';
+import { FormEvent, useRef, useState, useEffect, useMemo } from 'react';
 import './App.css';
-import Header from './components/Header';
+import { Header } from './components/Header';
 import Column from './components/Column';
 import { ColumnProps, API_ENDPOINT, ALL_COLORS } from './utils/utils';
-import { Alert, CloseButton } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap'
+import { ErrorContext } from './context/Error';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 const App = () => {
 	const [columnsState, setColumn] = useState<ColumnProps[]>([]);
-	const [errorState, setError] = useState<{ error: boolean, message?: string }>({
-		error: false,
-		message: ''
-	});
+	const [errorState, setError] = useState<boolean>(false);
+	const value = useMemo(() => ({ errorState, setError }), [errorState]);
 	const [color, setColor] = useState('bisque');
 	const columnName = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
+		const controller = new AbortController();
+		const id = setTimeout(() => controller.abort(), 8000);
 
-		fetch(`${API_ENDPOINT}/getcolumn/`)
-			.then(response => response.json())
-			.then(data => setColumn(data)).catch((error: Error) => {
-				setError({
-					error: true,
-					message: `there was an error fetcing the content ${error}`
-				})
-			})
+		async function getColumns(): Promise<void> {
+
+			try {
+				const response = await fetch(`${API_ENDPOINT}/getcolumn/`, {
+					signal: controller.signal
+				});
+				let data = await response.json();
+				setColumn(data);
+
+			} catch (error) {
+				setError(true);
+			}
+		}
+
+		clearTimeout(id);
+		getColumns();
+
 	}, []);
 
 	const checkForColumns = async (): Promise<string | undefined> => {
@@ -34,10 +45,7 @@ const App = () => {
 
 			return nameResult;
 		} catch (error) {
-			setError({
-				error: true,
-				message: `there was an error checking if the name exists: ${error}`
-			})
+			setError(true)
 		}
 
 		return '';
@@ -71,53 +79,62 @@ const App = () => {
 				columnName.current!.value = '';
 
 			} else {
-				setError({
-					error: true,
-					message: 'the given name already exists'
-				});
+				setError(true);
 			}
 		} catch (errorMessage) {
-			setError({
-				error: true,
-				message: `there was an error fetching the content: ${errorMessage}`
-			})
+			setError(true)
 		}
-	}
-	return (
-		<div className="App">
-			<div>
-				<Header />
-				{errorState.error &&
-					<Alert variant="danger" onClose={() => setError({ error: false })} dismissible>
-						<CloseButton />
-						<Alert.Heading>Oh snap! You got an error!</Alert.Heading>
-						<p>
-							{errorState.message}
-						</p>
-					</Alert>}
-				<div className="container-fluid">
-					<form onSubmit={createColumns}>
-						<input type="text" name="columnName" id="name" ref={columnName} />
-						<br />
-						<label htmlFor="color">select a color</label>
-						<select name="color" id="color" onChange={(e) => setColor(e.target.value)}>
-							{
-								ALL_COLORS.map((color, key) => {
+	};
+	const onDragEnd = (result: DropResult, columns: ColumnProps[], setColumns: React.Dispatch<React.SetStateAction<ColumnProps[]>>) => {
+		if(!result.destination) return;
+		const { source, destination } = result;
+		if(source.droppableId !== destination.droppableId){
+			const sourceCol = columnsState.find(el => el._id === source.droppableId);
+			const destCol = columnsState.find(el => el._id === destination.droppableId);
+			/* const sourceItems = [...sourceCol];
+			const destItems = [...destCol]; */
+		}
+	};
 
-									return (<option key={key} className='option-input' value={color}>{color}</option>)
-								})
-							}
-						</select>
-						<input type="submit" value="enviar" />
-					</form>
-					<div className="row">
-						{columnsState.map((column: ColumnProps) =>
-							<Column {...column} key={column._id} />
-						)}
+	return (
+		<DragDropContext onDragEnd={(result) => onDragEnd(result, columnsState, setColumn)}>
+			<ErrorContext.Provider value={value}>
+				<div className="App">
+					<div>
+						<Header />
+						{errorState &&
+							<Alert variant="danger" onClose={() => setError(false)} dismissible closeLabel='close' closeVariant='white'>
+								<Alert.Heading>There was an error with the app</Alert.Heading>
+								<p>there was an error with the app, please try again.</p>
+							</Alert>}
+						<div className="container-fluid">
+							<div className='card-creation-container'>
+								<form onSubmit={createColumns}>
+									<label htmlFor="columnName">Column name: </label>
+									<input type="text" name="columnName" id="name" ref={columnName} />
+									<br />
+									<label htmlFor="color">Select a background color</label>
+									<select name="color" id="color" onChange={(e) => setColor(e.target.value)}>
+										{
+											ALL_COLORS.map((color, key) => {
+
+												return (<option key={key} className='option-input' value={color}>{color}</option>)
+											})
+										}
+									</select>
+									<input type="submit" value="Create" />
+								</form>
+							</div>
+							<div className="row">
+								{columnsState.map((column: ColumnProps) =>
+									<Column {...column} key={column._id} />
+								)}
+							</div>
+						</div>
 					</div>
 				</div>
-			</div>
-		</div>
+			</ErrorContext.Provider>
+		</DragDropContext>
 	);
 }
 
