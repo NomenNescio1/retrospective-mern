@@ -2,7 +2,8 @@ import { FormEvent, useRef, useState, useEffect, useMemo } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import Column from './components/Column';
-import { ColumnProps, API_ENDPOINT, ALL_COLORS } from './utils/utils';
+import { API_ENDPOINT, ALL_COLORS } from './utils/utils';
+import { ColumnProps, CardProps } from './utils/types'
 import { Alert } from 'react-bootstrap'
 import { ErrorContext } from './context/Error';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
@@ -36,6 +37,10 @@ const App = () => {
 		getColumns();
 
 	}, []);
+
+	useEffect(() => {
+		
+	}, [columnsState])
 
 	const checkForColumns = async (): Promise<string | undefined> => {
 
@@ -72,7 +77,8 @@ const App = () => {
 				const newColumn: ColumnProps = {
 					_id: result._id,
 					name: columnName.current?.value,
-					color
+					color,
+					items: []
 				}
 
 				setColumn([...columnsState, newColumn]);
@@ -85,15 +91,34 @@ const App = () => {
 			setError(true)
 		}
 	};
-	const onDragEnd = (result: DropResult, columns: ColumnProps[], setColumns: React.Dispatch<React.SetStateAction<ColumnProps[]>>) => {
-		if(!result.destination) return;
+	const onDragEnd = (result: DropResult, columns: ColumnProps[], setColumn: React.Dispatch<React.SetStateAction<ColumnProps[]>>) => {
+		if (!result.destination) return;
 		const { source, destination } = result;
-		if(source.droppableId !== destination.droppableId){
-			const sourceCol = columnsState.find(el => el._id === source.droppableId);
-			const destCol = columnsState.find(el => el._id === destination.droppableId);
-			/* const sourceItems = [...sourceCol];
-			const destItems = [...destCol]; */
+		const sourceColIndex = columns.findIndex(el => el._id === source.droppableId);
+		let item: any = {};
+
+		if(!columns[sourceColIndex] ){
+			return null
 		}
+
+		if (source.droppableId !== destination.droppableId) {
+			const destColIndex = columns.findIndex(el => el._id === destination.droppableId);
+			item = columns?.[sourceColIndex as number]?.items?.[source.index] as CardProps;
+			if(item){
+				columns?.[sourceColIndex]?.items?.splice(source.index, 1);
+				columns?.[destColIndex]?.items?.splice(destination.index, 0, item);
+			}else {
+				console.log('sstate', columnsState.flatMap(el => el.items))
+				console.log('sstate', columns.flatMap(el => el.items))
+			}
+
+		} else {
+			item = columns?.[sourceColIndex]?.items?.[source.index] as CardProps;
+			columns?.[sourceColIndex]?.items?.splice(source.index, 1);
+			columns?.[sourceColIndex]?.items?.splice(destination.index, 0, item);
+		}
+
+		setColumn(columns)
 	};
 
 	return (

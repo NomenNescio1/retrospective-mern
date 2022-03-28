@@ -1,22 +1,23 @@
 import { useState, useEffect, useContext, BaseSyntheticEvent, memo } from "react";
 import Card from './Card';
-import { CardProps, ColumnProps, API_ENDPOINT } from "../utils/utils";
+import { CardProps, ColumnProps } from "../utils/types";
+import { API_ENDPOINT } from "../utils/utils";
 import { ErrorContext } from "../context/Error";
 import { Droppable } from "react-beautiful-dnd";
 
-const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
+const Column = ({ name, color, index, _id, items }: ColumnProps): JSX.Element => {
 
-	const [cards, setCards] = useState<CardProps[]>([]);
+	const [cards, setCards] = useState<CardProps[]>(items as CardProps[]);
 	const [displayForm, setDisplayForm] = useState(false);
 	const [inputValue, setInputValue] = useState('');
 	const { setError } = useContext(ErrorContext);
 
-	useEffect(() => {
+	/* useEffect(() => {
 		const controller = new AbortController();
 		const id = setTimeout(() => controller.abort(), 8000);
 
 		try {
-			fetch(`${API_ENDPOINT}/getcard/${name}`, {
+			fetch(`${API_ENDPOINT}/getcard/?id=${_id}`, {
 				signal: controller.signal
 			})
 				.then(response => response.json())
@@ -27,7 +28,7 @@ const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
 			setError(true);
 		}
 		clearTimeout(id);
-	}, [name]);
+	}, []); */
 
 	const createCard = async (event: BaseSyntheticEvent): Promise<void | JSX.Element> => {
 		event.preventDefault();
@@ -54,8 +55,8 @@ const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
 				likes: 0
 			};
 
-			const allCards = [...cards, newCard];
-			setCards(allCards);
+			setCards((cards) => cards ? [...cards, ...[newCard]] : [newCard]);
+			console.log('cardsstate', cards)
 			setInputValue('');
 			setDisplayForm(false);
 
@@ -68,7 +69,7 @@ const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
 
 	const handleInputChange = (ev: BaseSyntheticEvent): void => {
 		ev.preventDefault();
-
+		
 		setInputValue(ev.target.value);
 	};
 
@@ -89,8 +90,8 @@ const Column = ({ name, color, index, _id }: ColumnProps): JSX.Element => {
 							<input placeholder="Type the card content and press enter" type="text" className="input-create" value={inputValue || ''} onChange={handleInputChange} name="content" />
 						</form>
 						<div className="cards-container">
-							{cards.map((card: CardProps, index) =>
-								<Card {...card} key={card._id} index={index} updateCards={updateCards} />
+							{cards && cards.map((card: CardProps, index) =>
+								<Card {...card} key={card._id} index={index} _colId={_id} updateCards={updateCards} />
 							)}
 						</div>
 						{provided.placeholder}

@@ -1,11 +1,12 @@
 import { useState, useRef, BaseSyntheticEvent, useContext, memo } from "react";
 import { FaPencilAlt, FaTrashAlt, FaHeart } from "react-icons/fa";
-import { API_ENDPOINT, CardProps } from "../utils/utils";
+import { API_ENDPOINT } from "../utils/utils";
+import { CardProps } from "../utils/types";
 import { ErrorContext } from '../context/Error'
 import { Modal, Button } from "react-bootstrap";
 import { Draggable } from "react-beautiful-dnd";
 
-const Card = ({ likes, content, _id, updateCards, index, category }: CardProps): JSX.Element => {
+const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): JSX.Element => {
 
 	const updateRef = useRef<HTMLInputElement | null>(null);
 	const [contentState, setContent] = useState<string | undefined>(content || '');
@@ -16,10 +17,17 @@ const Card = ({ likes, content, _id, updateCards, index, category }: CardProps):
 
 	const editCard = async (event: BaseSyntheticEvent): Promise<void> => {
 		event.preventDefault();
-		await fetch(`${API_ENDPOINT}/edit/${_id}`, {
+		await fetch(`${API_ENDPOINT}/editcard`, {
 			method: 'PATCH',
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: `update=${updateRef.current?.value}`
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				colID: _colId,
+				cardID: _id,
+				update: updateRef.current?.value
+			})
 		}).catch((error) => {
 			console.error(error);
 
@@ -31,17 +39,18 @@ const Card = ({ likes, content, _id, updateCards, index, category }: CardProps):
 		setDisplayInput(false);
 	};
 
-	const fetchLikesCount = async (id: string | undefined): Promise<void> => {
+	const fetchLikesCount = async (cardID: string | undefined, colID: string | undefined): Promise<void> => {
 		setLikes(likesState as number + 1);
 
-		await fetch(`${API_ENDPOINT}/updatelikes/${id}`, {
+		await fetch(`${API_ENDPOINT}/updatelikes`, {
 			method: 'POST',
 			headers: {
 				'Accept': 'application/json',
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				likes: likesState
+				colID,
+				cardID
 			})
 		}).catch((error) => {
 			console.error(error);
@@ -50,9 +59,17 @@ const Card = ({ likes, content, _id, updateCards, index, category }: CardProps):
 		});
 	};
 
-	const deleteCard = async (cardID: string | undefined): Promise<void> => {
-		await fetch(`${API_ENDPOINT}/deletecard/${cardID}`, {
-			method: 'DELETE'
+	const deleteCard = async (cardID: string | undefined, colID: string | undefined): Promise<void> => {
+		await fetch(`${API_ENDPOINT}/deletecard`, {
+			method: 'DELETE',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				colID,
+				cardID
+			})
 		});
 
 		updateCards && updateCards(cardID);
@@ -69,7 +86,7 @@ const Card = ({ likes, content, _id, updateCards, index, category }: CardProps):
 					<Button variant="secondary" onClick={() => setModal(false)}>
 						Nah
 					</Button>
-					<Button variant="primary" onClick={() => deleteCard(_id)}>
+					<Button variant="primary" onClick={() => deleteCard(_id, _colId)}>
 						Yes
 					</Button>
 				</Modal.Footer>
@@ -82,7 +99,7 @@ const Card = ({ likes, content, _id, updateCards, index, category }: CardProps):
 							<div className="options-container">
 								<FaPencilAlt className="icon edit-icon" onClick={() => setDisplayInput(!displayInput)} id="edit" />
 								<FaTrashAlt onClick={() => setModal(true)} className="icon trash-icon" />
-								<FaHeart onClick={() => fetchLikesCount(_id)} className="icon heart-icon" />
+								<FaHeart onClick={() => fetchLikesCount(_id, _colId)} className="icon heart-icon" />
 								<span style={{ color: 'black' }}>{likesState}</span>
 							</div>
 							<form className={`update-card-form ${displayInput ? 'd-block' : 'd-none'}`} onSubmit={editCard}>
