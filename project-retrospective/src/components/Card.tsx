@@ -1,12 +1,13 @@
-import { useState, useRef, BaseSyntheticEvent, useContext, memo } from "react";
+import { useState, useRef, BaseSyntheticEvent, useContext } from "react";
 import { FaPencilAlt, FaTrashAlt, FaHeart } from "react-icons/fa";
 import { API_ENDPOINT } from "../utils/utils";
 import { CardProps } from "../utils/types";
 import { ErrorContext } from '../context/Error'
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button, Collapse } from "react-bootstrap";
 import { Draggable } from "react-beautiful-dnd";
+import { CardElement, OptionsContainer } from "../utils/components";
 
-const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): JSX.Element => {
+const Card = ({ likes, content, _id, updateCards, index, _colId, color }: CardProps): JSX.Element => {
 
 	const updateRef = useRef<HTMLInputElement | null>(null);
 	const [contentState, setContent] = useState<string | undefined>(content || '');
@@ -30,8 +31,7 @@ const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): J
 			})
 		}).catch((error) => {
 			console.error(error);
-
-			setError(true);
+			setError({ state: true, message: 'Backend endpoint not available.', variant: 'warning' });
 		});
 
 		setContent(updateRef.current?.value);
@@ -40,7 +40,7 @@ const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): J
 	};
 
 	const fetchLikesCount = async (cardID: string | undefined, colID: string | undefined): Promise<void> => {
-		setLikes(likesState as number + 1);
+		setLikes(state => state as number + 1);
 
 		await fetch(`${API_ENDPOINT}/updatelikes`, {
 			method: 'POST',
@@ -52,10 +52,9 @@ const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): J
 				colID,
 				cardID
 			})
-		}).catch((error) => {
-			console.error(error);
+		}).catch(_ => {
 
-			setError(true);
+			setError({ state: true, message: 'Endpoint not available.' });
 		});
 	};
 
@@ -70,6 +69,8 @@ const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): J
 				colID,
 				cardID
 			})
+		}).catch(_ => {
+			setError({ state: true, message: 'Endpoint not available.' });
 		});
 
 		updateCards && updateCards(cardID);
@@ -94,23 +95,27 @@ const Card = ({ likes, content, _id, updateCards, index, _colId }: CardProps): J
 			<Draggable key={_id} draggableId={_id as string} index={index as number}>
 				{(provided, snapshot) => {
 					return (
-						<div className="card" ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps}>
+						<CardElement ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps}>
 							{contentState}
-							<div className="options-container">
-								<FaPencilAlt className="icon edit-icon" onClick={() => setDisplayInput(!displayInput)} id="edit" />
-								<FaTrashAlt onClick={() => setModal(true)} className="icon trash-icon" />
-								<FaHeart onClick={() => fetchLikesCount(_id, _colId)} className="icon heart-icon" />
+							<OptionsContainer>
+								<FaPencilAlt fill={color} className="icon edit-icon" onClick={() => setDisplayInput(!displayInput)} id="edit" />
+								<FaTrashAlt fill={color} onClick={() => setModal(true)} className="icon trash-icon" />
+								<FaHeart fill={color} onClick={() => fetchLikesCount(_id, _colId)} className="icon heart-icon" />
 								<span style={{ color: 'black' }}>{likesState}</span>
-							</div>
-							<form className={`update-card-form ${displayInput ? 'd-block' : 'd-none'}`} onSubmit={editCard}>
-								<input placeholder="Edit card" className="form-update" type="text" name="update" ref={updateRef} />
-								<input type="submit" value="Update" />
-							</form>
-						</div>
+							</OptionsContainer>
+							<Collapse in={displayInput}>
+								<div>
+									<form className={'update-card-form'} onSubmit={editCard}>
+										<input placeholder="Edit card" className="form-update" type="text" name="update" ref={updateRef} />
+										<input type="submit" value="Update" />
+									</form>
+								</div>
+							</Collapse>
+						</CardElement>
 					)
 				}}
 			</Draggable>
 		</>);
 }
 
-export default memo(Card);
+export default Card;

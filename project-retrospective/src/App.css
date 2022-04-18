@@ -1,45 +1,21 @@
+body {
+  background-color: #f4f7f8;
+}
 .App {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
 .add-card-span {
   width: 100%;
-  background-color: #eeeeee;
+  background-color: rgb(244, 247, 248, .7);
   padding: 10px 0;
   font-size: 20px;
   margin-bottom: 20px;
   cursor: pointer;
 }
-.App-link {
-  color: #09d3ac;
-}
-.card {
-  padding: 10px 0;
-}
-.form-update {
-  width: 80%;
-  margin: 10px auto;
-}
-.input-create {
-  width: 100%;
-  margin-bottom: 10px;
-}
-.option-input:nth-child(2) {
-  background: linear-gradient(90deg, #fc466b 0%, #3f5efb 100%);
+input[type="text"],
+select {
+  background-color: #e8eeef;
 }
 .options-container {
   width: 100%;
@@ -51,9 +27,6 @@
 .top {
   padding: 20px 0;
   margin-bottom: 20px;
-}
-.card {
-  margin-bottom: 10px;
 }
 .icon {
   cursor: pointer;
@@ -82,9 +55,7 @@
   border-radius: 0.25rem;
   opacity: .5;
 }
-.column-container {
 
-}
 .update-card-form {
   display: flex;
   padding: 0 25px;

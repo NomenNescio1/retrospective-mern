@@ -1,6 +1,8 @@
 import { createContext } from "react";
+import { ErrorState, ErrorContextType } from '../utils/types'
 
-export const ErrorContext = createContext({
- errorState: false,
- setError: (error: boolean) => {}
+export const ErrorContext = createContext<ErrorContextType>({
+    state: false,
+    message: '',
+    setError: ({ state, message }: ErrorState) => {}
 });

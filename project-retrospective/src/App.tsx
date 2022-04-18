@@ -3,15 +3,18 @@ import './App.css';
 import { Header } from './components/Header';
 import Column from './components/Column';
 import { API_ENDPOINT, ALL_COLORS } from './utils/utils';
-import { ColumnProps, CardProps } from './utils/types'
-import { Alert } from 'react-bootstrap'
+import { ColumnProps, ColumnsType, ErrorState } from './utils/types';
+import { Alert } from 'react-bootstrap';
 import { ErrorContext } from './context/Error';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { ColumnsContainer } from './utils/components';
+import { FetchContext } from './context/Fetch';
 
 const App = () => {
 	const [columnsState, setColumn] = useState<ColumnProps[]>([]);
-	const [errorState, setError] = useState<boolean>(false);
-	const value = useMemo(() => ({ errorState, setError }), [errorState]);
+	const [errorState, setError] = useState<ErrorState>({ state: false, message: '' as string });
+	const [fetchState, setFetch] = useState<boolean>(false);
+	const errorContextValue = useMemo(() => ({ ...errorState, setError }), [errorState]);
 	const [color, setColor] = useState('bisque');
 	const columnName = useRef<HTMLInputElement | null>(null);
 
@@ -29,38 +32,34 @@ const App = () => {
 				setColumn(data);
 
 			} catch (error) {
-				setError(true);
+				setError({ state: true, message: 'It seems the server is not responding. Try again?' });
 			}
 		}
 
 		clearTimeout(id);
 		getColumns();
 
-	}, []);
+	}, [fetchState]);
 
-	useEffect(() => {
-		
-	}, [columnsState])
-
-	const checkForColumns = async (): Promise<string | undefined> => {
+	const checkForColumns = async (): Promise<ColumnsType | void> => {
 
 		try {
 			const getName = await fetch(`${API_ENDPOINT}/getcolumn?name=${columnName.current?.value}`);
-			const nameResult: string = await getName.text();
 
-			return nameResult;
+			return await getName.json();
 		} catch (error) {
-			setError(true)
-		}
 
-		return '';
+			setError({ state: true, message: 'Endpoint not available' });
+		}
 	}
 
 	const createColumns = async (event: FormEvent): Promise<void | JSX.Element> => {
 		event.preventDefault();
 
 		try {
-			if (await checkForColumns() === 'notfound') {
+			const { foundCard, count } = await checkForColumns() as ColumnsType;
+
+			if (!foundCard && count as number < 3) {
 				const response = await fetch(`${API_ENDPOINT}/createcolumn`, {
 					method: 'POST',
 					headers: {
@@ -85,80 +84,79 @@ const App = () => {
 				columnName.current!.value = '';
 
 			} else {
-				setError(true);
+				setError({ state: true, message: 'Columns limit is 3', variant: 'warning' });
 			}
 		} catch (errorMessage) {
-			setError(true)
+			setError({ state: true, message: 'jaja' })
 		}
 	};
-	const onDragEnd = (result: DropResult, columns: ColumnProps[], setColumn: React.Dispatch<React.SetStateAction<ColumnProps[]>>) => {
+
+	const onDragEnd = (result: DropResult) => {
 		if (!result.destination) return;
 		const { source, destination } = result;
-		const sourceColIndex = columns.findIndex(el => el._id === source.droppableId);
-		let item: any = {};
+		let columns = [...columnsState];
+		const sourceCol = columns.find(el => el._id === source.droppableId);
+		const destCol = columns.find(el => el._id === destination.droppableId);
+		let item = sourceCol?.items?.find(el => el._id === result.draggableId)
 
-		if(!columns[sourceColIndex] ){
-			return null
-		}
+		if (!result.destination || !item || !destCol || !sourceCol) return;
 
 		if (source.droppableId !== destination.droppableId) {
-			const destColIndex = columns.findIndex(el => el._id === destination.droppableId);
-			item = columns?.[sourceColIndex as number]?.items?.[source.index] as CardProps;
-			if(item){
-				columns?.[sourceColIndex]?.items?.splice(source.index, 1);
-				columns?.[destColIndex]?.items?.splice(destination.index, 0, item);
-			}else {
-				console.log('sstate', columnsState.flatMap(el => el.items))
-				console.log('sstate', columns.flatMap(el => el.items))
-			}
+			//diff col
+			item.color = destCol.color;
+			sourceCol.items?.splice(source.index, 1);
+			destCol.items?.splice(destination.index, 0, item);
 
 		} else {
-			item = columns?.[sourceColIndex]?.items?.[source.index] as CardProps;
-			columns?.[sourceColIndex]?.items?.splice(source.index, 1);
-			columns?.[sourceColIndex]?.items?.splice(destination.index, 0, item);
+			//same col
+			sourceCol.items?.splice(source.index, 1);
+			sourceCol.items?.splice(destination.index, 0, item);
 		}
 
-		setColumn(columns)
+		setColumn(columns);
 	};
 
 	return (
-		<DragDropContext onDragEnd={(result) => onDragEnd(result, columnsState, setColumn)}>
-			<ErrorContext.Provider value={value}>
-				<div className="App">
-					<div>
-						<Header />
-						{errorState &&
-							<Alert variant="danger" onClose={() => setError(false)} dismissible closeLabel='close' closeVariant='white'>
-								<Alert.Heading>There was an error with the app</Alert.Heading>
-								<p>there was an error with the app, please try again.</p>
-							</Alert>}
-						<div className="container-fluid">
-							<div className='card-creation-container'>
-								<form onSubmit={createColumns}>
-									<label htmlFor="columnName">Column name: </label>
-									<input type="text" name="columnName" id="name" ref={columnName} />
-									<br />
-									<label htmlFor="color">Select a background color</label>
-									<select name="color" id="color" onChange={(e) => setColor(e.target.value)}>
-										{
-											ALL_COLORS.map((color, key) => {
+		<DragDropContext onDragEnd={onDragEnd}>
+			<FetchContext.Provider value={{ shouldFetch: fetchState, setShouldFetch: setFetch }}>
+				<ErrorContext.Provider value={errorContextValue}>
+					<div className="App">
+						<div>
+							<Header />
+							{errorState.state &&
+								<Alert variant={errorState.variant || 'danger'} onClose={() => setError({ state: false })} dismissible closeLabel='close' closeVariant='white'>
+									<Alert.Heading>There was an error with the app</Alert.Heading>
+									<p>{errorState.message}</p>
+								</Alert>}
+							<div className="container-fluid">
+								<div className='card-creation-container'>
+									<h4>Create a column:</h4>
+									<form onSubmit={createColumns}>
+										<label htmlFor="columnName">Name: </label>
+										<input type="text" name="columnName" id="name" ref={columnName} />
+										<br />
+										<label htmlFor="color">Background: </label>
+										<select name="color" id="color" onChange={(e) => setColor(e.target.value)}>
+											{
+												ALL_COLORS.map((color, key) => {
 
-												return (<option key={key} className='option-input' value={color}>{color}</option>)
-											})
-										}
-									</select>
-									<input type="submit" value="Create" />
-								</form>
-							</div>
-							<div className="row">
-								{columnsState.map((column: ColumnProps) =>
-									<Column {...column} key={column._id} />
-								)}
+													return (<option style={{ backgroundColor: `${color}`}} key={key} className='option-input' value={color}>{color}</option>)
+												})
+											}
+										</select>
+										<input type="submit" value="Create" />
+									</form>
+								</div>
+								<ColumnsContainer>
+									{columnsState && columnsState.map((column: ColumnProps) =>
+										<Column {...column} key={column._id} />
+									)}
+								</ColumnsContainer>
 							</div>
 						</div>
 					</div>
-				</div>
-			</ErrorContext.Provider>
+				</ErrorContext.Provider>
+			</FetchContext.Provider>
 		</DragDropContext>
 	);
 }
