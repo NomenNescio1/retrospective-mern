@@ -1,0 +1,34 @@
+body.body {
+  background-color: #f4f7f8;
+}
+.App {
+  text-align: center;
+}
+.col-name {
+  display: inline-block;
+}
+input[type="text"],
+select {
+  all: unset;
+  background-color: #e8eeef;
+}
+.input-create, .input-update {
+  margin-right: 10px;
+}
+.top {
+  padding: 20px 0;
+  margin-bottom: 20px;
+  margin: 0 auto;
+  text-align: left;
+}
+.icon {
+  cursor: pointer;
+  margin: 0 5px;
+}
+
+.update-card-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
