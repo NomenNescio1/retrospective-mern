@@ -10,7 +10,7 @@
     "react-scripts": "^3.3.0",
     "reactstrap": "^8.0.1"
   },
-  "homepage": "https://nomennescio1.github.io/retrospective-client",
+  "homepage": "https://nomennescio1.github.io/retrospective-mern",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
