@@ -1,22 +1,19 @@
-import { FormEvent, useRef, useState, useEffect, useMemo } from 'react';
-import './App.css';
+import { useState, useEffect, useMemo } from 'react';
+import { Alert } from 'react-bootstrap';
 import { Header } from './components/Header';
 import Column from './components/Column';
-import { API_ENDPOINT, ALL_COLORS } from './utils/utils';
-import { ColumnProps, ColumnsType, ErrorState } from './utils/types';
-import { Alert } from 'react-bootstrap';
+import { API_ENDPOINT } from './utils/utils';
+import { ColumnProps, ErrorState } from './utils/types';
 import { ErrorContext } from './context/Error';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { ColumnsContainer } from './utils/components';
-import { FetchContext } from './context/Fetch';
+import './App.scss';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const App = () => {
 	const [columnsState, setColumn] = useState<ColumnProps[]>([]);
 	const [errorState, setError] = useState<ErrorState>({ state: false, message: '' as string });
-	const [fetchState, setFetch] = useState<boolean>(false);
 	const errorContextValue = useMemo(() => ({ ...errorState, setError }), [errorState]);
-	const [color, setColor] = useState('bisque');
-	const columnName = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -39,57 +36,7 @@ const App = () => {
 		clearTimeout(id);
 		getColumns();
 
-	}, [fetchState]);
-
-	const checkForColumns = async (): Promise<ColumnsType | void> => {
-
-		try {
-			const getName = await fetch(`${API_ENDPOINT}/getcolumn?name=${columnName.current?.value}`);
-
-			return await getName.json();
-		} catch (error) {
-
-			setError({ state: true, message: 'Endpoint not available' });
-		}
-	}
-
-	const createColumns = async (event: FormEvent): Promise<void | JSX.Element> => {
-		event.preventDefault();
-
-		try {
-			const { foundCard, count } = await checkForColumns() as ColumnsType;
-
-			if (!foundCard && count as number < 3) {
-				const response = await fetch(`${API_ENDPOINT}/createcolumn`, {
-					method: 'POST',
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						name: columnName.current?.value,
-						color
-					})
-				});
-
-				const result = await response.json();
-				const newColumn: ColumnProps = {
-					_id: result._id,
-					name: columnName.current?.value,
-					color,
-					items: []
-				}
-
-				setColumn([...columnsState, newColumn]);
-				columnName.current!.value = '';
-
-			} else {
-				setError({ state: true, message: 'Columns limit is 3', variant: 'warning' });
-			}
-		} catch (errorMessage) {
-			setError({ state: true, message: 'jaja' })
-		}
-	};
+	}, []);
 
 	const onDragEnd = (result: DropResult) => {
 		if (!result.destination) return;
@@ -118,45 +65,23 @@ const App = () => {
 
 	return (
 		<DragDropContext onDragEnd={onDragEnd}>
-			<FetchContext.Provider value={{ shouldFetch: fetchState, setShouldFetch: setFetch }}>
-				<ErrorContext.Provider value={errorContextValue}>
-					<div className="App">
-						<div>
-							<Header />
-							{errorState.state &&
-								<Alert variant={errorState.variant || 'danger'} onClose={() => setError({ state: false })} dismissible closeLabel='close' closeVariant='white'>
-									<Alert.Heading>There was an error with the app</Alert.Heading>
-									<p>{errorState.message}</p>
-								</Alert>}
-							<div className="container-fluid">
-								<div className='card-creation-container'>
-									<h4>Create a column:</h4>
-									<form onSubmit={createColumns}>
-										<label htmlFor="columnName">Name: </label>
-										<input type="text" name="columnName" id="name" ref={columnName} />
-										<br />
-										<label htmlFor="color">Background: </label>
-										<select name="color" id="color" onChange={(e) => setColor(e.target.value)}>
-											{
-												ALL_COLORS.map((color, key) => {
-
-													return (<option style={{ backgroundColor: `${color}`}} key={key} className='option-input' value={color}>{color}</option>)
-												})
-											}
-										</select>
-										<input type="submit" value="Create" />
-									</form>
-								</div>
-								<ColumnsContainer>
-									{columnsState && columnsState.map((column: ColumnProps) =>
-										<Column {...column} key={column._id} />
-									)}
-								</ColumnsContainer>
-							</div>
-						</div>
+			<ErrorContext.Provider value={errorContextValue}>
+				<div className="App">
+					<Header />
+					{errorState.state &&
+						<Alert variant={errorState.variant || 'danger'} onClose={() => setError({ state: false })} dismissible closeLabel='close' closeVariant='white'>
+							<Alert.Heading>There was an error with the app</Alert.Heading>
+							<p>{errorState.message}</p>
+						</Alert>}
+					<div className="container-fluid">
+						<ColumnsContainer>
+							{columnsState && columnsState.map((column: ColumnProps) =>
+								<Column {...column} key={column._id} />
+							)}
+						</ColumnsContainer>
 					</div>
-				</ErrorContext.Provider>
-			</FetchContext.Provider>
+				</div>
+			</ErrorContext.Provider>
 		</DragDropContext>
 	);
 }

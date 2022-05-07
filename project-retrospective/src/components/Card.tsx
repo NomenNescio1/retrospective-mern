@@ -93,7 +93,7 @@ const Card = ({ likes, content, _id, updateCards, index, _colId, color }: CardPr
 				</Modal.Footer>
 			</Modal>}
 			<Draggable key={_id} draggableId={_id as string} index={index as number}>
-				{(provided, snapshot) => {
+				{provided => {
 					return (
 						<CardElement ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps}>
 							{contentState}
@@ -106,7 +106,7 @@ const Card = ({ likes, content, _id, updateCards, index, _colId, color }: CardPr
 							<Collapse in={displayInput}>
 								<div>
 									<form className={'update-card-form'} onSubmit={editCard}>
-										<input placeholder="Edit card" className="form-update" type="text" name="update" ref={updateRef} />
+										<input placeholder="Edit card" className="input-update" type="text" name="update" ref={updateRef} />
 										<input type="submit" value="Update" />
 									</form>
 								</div>
